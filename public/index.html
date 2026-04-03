@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>صالح مهدي | AI Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #f5c842;
+    --gold2: #e0a800;
+    --dark: #0a0a0f;
+    --dark2: #12121a;
+    --dark3: #1a1a28;
+    --accent: #7c3aed;
+    --accent2: #a855f7;
+    --glass: rgba(255,255,255,0.04);
+    --border: rgba(245,200,66,0.2);
+    --text: #f0eaff;
+    --sub: #a099c8;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 20%, rgba(124,58,237,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(245,200,66,0.08) 0%, transparent 50%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  #overlay {
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.7);
+    backdrop-filter:blur(4px);
+    z-index:100;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.4s ease;
+  }
+  #overlay.active { opacity:1; pointer-events:all; }
+
+  #side-menu {
+    position:fixed;
+    top:0;
+    right:-340px;
+    width:320px;
+    height:100vh;
+    background: linear-gradient(160deg, #13132a 0%, #0d0d1f 100%);
+    border-left: 1px solid var(--border);
+    z-index:200;
+    transition: right 0.45s cubic-bezier(0.23,1,0.32,1);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  #side-menu.open { right:0; }
+
+  .menu-glow {
+    position:absolute;
+    top:-60px;
+    right:-60px;
+    width:200px; height:200px;
+    background:radial-gradient(circle, rgba(245,200,66,0.15), transparent 70%);
+    pointer-events:none;
+  }
+
+  .menu-header {
+    padding:30px 25px 20px;
+    border-bottom:1px solid var(--border);
+    position:relative;
+  }
+
+  .menu-avatar {
+    width:70px; height:70px;
+    border-radius:50%;
+    background: linear-gradient(135deg, var(--gold), var(--accent2));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.8em;
+    font-weight:900;
+    color:#000;
+    margin-bottom:12px;
+    box-shadow:0 0 25px rgba(245,200,66,0.3);
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%,100% { transform:translateY(0); }
+    50% { transform:translateY(-5px); }
+  }
+
+  .menu-name {
+    font-size:1.25em;
+    font-weight:900;
+    background: linear-gradient(90deg, var(--gold), var(--accent2));
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+  .menu-subtitle { font-size:0.8em; color:var(--sub); margin-top:3px; }
+
+  .menu-close {
+    position:absolute;
+    top:20px;
+    left:20px;
+    width:36px; height:36px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.1);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.1em;
+    color:var(--sub);
+    transition:all 0.2s;
+  }
+  .menu-close:hover { background:rgba(255,80,80,0.15); color:#ff6b6b; border-color:rgba(255,80,80,0.3); }
+
+  .menu-section-title {
+    font-size:0.7em;
+    color:var(--gold);
+    letter-spacing:3px;
+    text-transform:uppercase;
+    padding:20px 25px 8px;
+    font-weight:700;
+  }
+
+  .menu-item {
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:14px 25px;
+    cursor:pointer;
+    transition:all 0.25s;
+    border-right:3px solid transparent;
+    text-decoration:none;
+    color:var(--text);
+  }
+  .menu-item:hover {
+    background:rgba(245,200,66,0.06);
+    border-right-color:var(--gold);
+  }
+
+  .menu-item-icon {
+    width:40px; height:40px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.1em;
+    flex-shrink:0;
+  }
+  .icon-tg { background:linear-gradient(135deg,#0088cc22,#0088cc44); border:1px solid #0088cc44; color:#29b6f6; }
+  .icon-ig { background:linear-gradient(135deg,#e91e6322,#ff572244); border:1px solid #e91e6344; color:#f06292; }
+  .icon-ai { background:linear-gradient(135deg,#7c3aed22,#a855f744); border:1px solid #7c3aed44; color:#c084fc; }
+
+  .menu-item-text { flex:1; }
+  .menu-item-text strong { display:block; font-size:0.95em; font-weight:700; }
+  .menu-item-text span { font-size:0.78em; color:var(--sub); }
+
+  .menu-item-arrow { color:var(--sub); font-size:0.8em; transition:transform 0.2s; }
+  .menu-item:hover .menu-item-arrow { transform:translateX(-4px); color:var(--gold); }
+
+  .menu-divider { height:1px; background:var(--border); margin:8px 25px; }
+
+  .menu-footer {
+    margin-top:auto;
+    padding:20px 25px;
+    border-top:1px solid var(--border);
+    text-align:center;
+  }
+  .rights-badge {
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:rgba(245,200,66,0.08);
+    border:1px solid var(--border);
+    border-radius:50px;
+    padding:8px 18px;
+    font-size:0.78em;
+    color:var(--gold);
+    font-weight:700;
+  }
+
+  header {
+    position:relative;
+    z-index:10;
+    background: linear-gradient(90deg, var(--dark2), var(--dark3));
+    border-bottom:1px solid var(--border);
+    padding:0 20px;
+    height:65px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-shrink:0;
+  }
+
+  .header-logo {
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .logo-dot {
+    width:38px; height:38px;
+    border-radius:12px;
+    background:linear-gradient(135deg, var(--gold), var(--accent2));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:900;
+    color:#000;
+    font-size:1em;
+    box-shadow:0 0 15px rgba(245,200,66,0.25);
+  }
+  .header-title { font-size:1.05em; font-weight:900; color:var(--text); }
+  .header-sub { font-size:0.72em; color:var(--sub); font-weight:400; }
+
+  .hamburger {
+    width:44px; height:44px;
+    border-radius:12px;
+    background:var(--glass);
+    border:1px solid var(--border);
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    transition:all 0.3s;
+  }
+  .hamburger:hover { background:rgba(245,200,66,0.08); border-color:var(--gold); }
+  .hamburger:hover .hb-line { background:var(--gold); }
+  .hb-line {
+    width:20px; height:2px;
+    background:var(--sub);
+    border-radius:2px;
+    transition:all 0.3s;
+  }
+  .hb-line:nth-child(2) { width:14px; align-self:flex-end; margin-left:6px; }
+
+  #chat {
+    flex:1;
+    padding:20px;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    position:relative;
+    z-index:1;
+  }
+
+  #chat::-webkit-scrollbar { width:4px; }
+  #chat::-webkit-scrollbar-track { background:transparent; }
+  #chat::-webkit-scrollbar-thumb { background:rgba(245,200,66,0.2); border-radius:4px; }
+
+  .message {
+    display:flex;
+    gap:10px;
+    max-width:82%;
+    animation:msgIn 0.35s cubic-bezier(0.23,1,0.32,1);
+  }
+  @keyframes msgIn {
+    from { opacity:0; transform:translateY(12px) scale(0.97); }
+    to { opacity:1; transform:translateY(0) scale(1); }
+  }
+
+  .message.user { align-self:flex-start; flex-direction:row-reverse; }
+  .message.bot { align-self:flex-end; }
+
+  .msg-avatar {
+    width:34px; height:34px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:0.85em;
+    flex-shrink:0;
+    margin-top:2px;
+  }
+  .user .msg-avatar { background:linear-gradient(135deg,#1a1a2e,#2a2a4a); border:1px solid rgba(245,200,66,0.3); }
+  .bot .msg-avatar { background:linear-gradient(135deg,var(--accent),var(--accent2)); }
+
+  .msg-bubble {
+    padding:12px 16px;
+    border-radius:16px;
+    line-height:1.6;
+    font-size:0.93em;
+  }
+  .user .msg-bubble {
+    background:linear-gradient(135deg, #1e1e35, #252540);
+    border:1px solid rgba(245,200,66,0.15);
+    border-radius:16px 4px 16px 16px;
+    color:var(--text);
+  }
+  .bot .msg-bubble {
+    background:linear-gradient(135deg, rgba(124,58,237,0.15), rgba(168,85,247,0.1));
+    border:1px solid rgba(168,85,247,0.2);
+    border-radius:4px 16px 16px 16px;
+    color:var(--text);
+  }
+
+  .typing-indicator {
+    display:flex;
+    gap:5px;
+    padding:14px 16px;
+    align-items:center;
+  }
+  .typing-dot {
+    width:7px; height:7px;
+    border-radius:50%;
+    background:var(--accent2);
+    animation:typing 1.4s ease infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay:0.2s; }
+  .typing-dot:nth-child(3) { animation-delay:0.4s; }
+  @keyframes typing {
+    0%,60%,100% { transform:translateY(0); opacity:0.5; }
+    30% { transform:translateY(-6px); opacity:1; }
+  }
+
+  .welcome-card {
+    align-self:center;
+    background:linear-gradient(135deg, rgba(245,200,66,0.06), rgba(124,58,237,0.08));
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:24px 30px;
+    text-align:center;
+    max-width:300px;
+    margin:20px auto;
+  }
+  .welcome-emoji { font-size:2.5em; margin-bottom:10px; }
+  .welcome-title { font-size:1.1em; font-weight:700; color:var(--gold); }
+  .welcome-sub { font-size:0.82em; color:var(--sub); margin-top:6px; line-height:1.6; }
+
+  #input-area {
+    position:relative;
+    z-index:10;
+    padding:16px 20px;
+    background:var(--dark2);
+    border-top:1px solid var(--border);
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+
+  #user-input {
+    flex:1;
+    padding:13px 18px;
+    border-radius:14px;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,0.04);
+    color:var(--text);
+    font-family:'Cairo',sans-serif;
+    font-size:0.92em;
+    outline:none;
+    transition:all 0.3s;
+    direction:rtl;
+  }
+  #user-input::placeholder { color:var(--sub); }
+  #user-input:focus {
+    border-color:rgba(245,200,66,0.4);
+    background:rgba(255,255,255,0.06);
+    box-shadow:0 0 0 3px rgba(245,200,66,0.06);
+  }
+
+  #send-btn {
+    width:48px; height:48px;
+    border-radius:14px;
+    border:none;
+    background:linear-gradient(135deg, var(--gold), var(--gold2));
+    color:#000;
+    font-size:1.1em;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:all 0.3s;
+    flex-shrink:0;
+    font-weight:900;
+  }
+  #send-btn:hover { transform:scale(1.08); box-shadow:0 0 20px rgba(245,200,66,0.4); }
+  #send-btn:active { transform:scale(0.96); }
+
+  img.generated { max-width:100%; border-radius:12px; margin-top:6px; }
+
+  * { scrollbar-width:thin; scrollbar-color:rgba(245,200,66,0.2) transparent; }
+</style>
+</head>
+<body>
+
+<div id="overlay" onclick="closeMenu()"></div>
+<div id="side-menu">
+  <div class="menu-glow"></div>
+  <div class="menu-header">
+    <div class="menu-close" onclick="closeMenu()">✕</div>
+    <div class="menu-avatar">SA</div>
+    <div class="menu-name">صالح مهدي</div>
+    <div class="menu-subtitle">مطوّر الموقع</div>
+  </div>
+
+  <div class="menu-section-title">حساباتي</div>
+
+  <a href="https://t.me/wi6j1" target="_blank" class="menu-item">
+    <div class="menu-item-icon icon-tg">✈</div>
+    <div class="menu-item-text">
+      <strong>تيليجرام</strong>
+      <span>@wi6j1</span>
+    </div>
+    <div class="menu-item-arrow">←</div>
+  </a>
+
+  <a href="https://instagram.com/_2pfi" target="_blank" class="menu-item">
+    <div class="menu-item-icon icon-ig">📸</div>
+    <div class="menu-item-text">
+      <strong>انستقرام</strong>
+      <span>@_2pfi</span>
+    </div>
+    <div class="menu-item-arrow">←</div>
+  </a>
+
+  <div class="menu-divider"></div>
+  <div class="menu-section-title">🤖 الذكاء الاصطناعي</div>
+
+  <div class="menu-item" onclick="closeMenu()">
+    <div class="menu-item-icon icon-ai">💬</div>
+    <div class="menu-item-text">
+      <strong>المحادثة</strong>
+      <span></span>
+    </div>
+    <div class="menu-item-arrow">←</div>
+  </div>
+
+  <div class="menu-footer">
+    <div class="rights-badge">
+      ©️ جميع الحقوق محفوظة — صالح مهدي
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="hamburger" onclick="openMenu()">
+    <div class="hb-line"></div>
+    <div class="hb-line"></div>
+    <div class="hb-line"></div>
+  </div>
+  <div class="header-logo">
+    <div class="logo-dot">AI</div>
+    <div>
+      <div class="header-title">SA</div>
+      <div class="header-sub">مساعد الذكاء الاصطناعي</div>
+    </div>
+  </div>
+</header>
+
+<div id="chat">
+  <div class="welcome-card">
+    <div class="welcome-emoji">🌹</div>
+    <div class="welcome-title">اهلا وسهلا</div>
+    <div class="welcome-sub">ابدأ بالمحادثة مع افضل ذكاء اصطناعي وبدون اشتراك 👌🏻</div>
+  </div>
+</div>
+
+<div id="input-area">
+  <input type="text" id="user-input" placeholder="اكتب رسالتك هنا..." />
+  <button id="send-btn">➤</button>
+</div>
+
+<script>
+  const sideMenu = document.getElementById('side-menu');
+  const overlay = document.getElementById('overlay');
+
+  function openMenu() {
+    sideMenu.classList.add('open');
+    overlay.classList.add('active');
+  }
+
+  function closeMenu() {
+    sideMenu.classList.remove('open');
+    overlay.classList.remove('active');
+  }
+
+  const chat = document.getElementById('chat');
+  const input = document.getElementById('user-input');
+  const sendBtn = document.getElementById('send-btn');
+
+  function appendMessage(sender, text) {
+    const msg = document.createElement('div');
+    msg.classList.add('message', sender);
+    
+    const avatar = document.createElement('div');
+    avatar.classList.add('msg-avatar');
+    avatar.textContent = sender === 'user' ? 'أنت' : 'AI';
+
+    const bubble = document.createElement('div');
+    bubble.classList.add('msg-bubble');
+    bubble.innerHTML = text;
+
+    msg.appendChild(avatar);
+    msg.appendChild(bubble);
+    chat.appendChild(msg);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  sendBtn.addEventListener('click', async () => {
+  const text = input.value.trim();
+  if (!text) return;
+  appendMessage('user', text);
+  input.value = '';
+
+  const botMessage = appendMessage('bot', 'جاري المعالجة…');
+
+  try {
+    const res = await fetch('https://YOUR_WORKER_URL_HERE', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({message:text})
+    });
+    const data = await res.json();
+    botMessage.querySelector('.msg-bubble').innerHTML = data.reply || 'لم يتم الرد';
+  } catch(err){
+    botMessage.querySelector('.msg-bubble').innerHTML = 'حدث خطأ. حاول لاحقاً.';
+    console.error(err);
+  }
+});
+
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendBtn.click();
+  });
+</script>
+
+</body>
+</html>
