@@ -528,11 +528,11 @@
   const botMessage = appendMessage('bot', 'جاري المعالجة…');
 
   try {
-    const res = await fetch('https://YOUR_WORKER_URL_HERE', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({message:text})
-    });
+    const res = await fetch('https://aisa-production.up.railway.app/api', {
+  method: 'POST',
+  headers: {'Content-Type':'application/json'},
+  body: JSON.stringify({message:text})
+});
     const data = await res.json();
     botMessage.querySelector('.msg-bubble').innerHTML = data.reply || 'لم يتم الرد';
   } catch(err){
